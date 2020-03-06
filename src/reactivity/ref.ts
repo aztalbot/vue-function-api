@@ -6,7 +6,12 @@ import { reactive } from './reactive';
 
 type BailTypes = Function | Map<any, any> | Set<any> | WeakMap<any, any> | WeakSet<any>;
 
-export interface Ref<T> {
+const isRefSymbol = Symbol();
+
+export interface Ref<T = any> {
+  // This field is necessary to allow TS to differentiate a Ref from a plain
+  // object that happens to have a "value" field.
+  [isRefSymbol]: true;
   value: T;
 }
 
@@ -87,6 +92,7 @@ interface RefOption<T> {
 }
 class RefImpl<T> implements Ref<T> {
   public value!: T;
+  [isRefSymbol]: true;
   constructor({ get, set }: RefOption<T>) {
     proxy(this, 'value', {
       get,
