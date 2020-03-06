@@ -6,7 +6,18 @@ import { reactive } from './reactive';
 
 type BailTypes = Function | Map<any, any> | Set<any> | WeakMap<any, any> | WeakSet<any>;
 
-export interface Ref<T> {
+const isRefSymbol = Symbol();
+
+export interface Ref<T = any> {
+  // This field is necessary to allow TS to differentiate a Ref from a plain
+  // object that happens to have a "value" field.
+  // However, checking a symbol on an arbitrary object is much slower than
+  // checking a plain property, so we use a _isRef plain property for isRef()
+  // check in the actual implementation.
+  // The reason for not just declaring _isRef in the interface is because we
+  // don't want this internal field to leak into userland autocompletion -
+  // a private symbol, on the other hand, achieves just that.
+  [isRefSymbol]: true;
   value: T;
 }
 
@@ -87,10 +98,11 @@ interface RefOption<T> {
 }
 class RefImpl<T> implements Ref<T> {
   public value!: T;
-  constructor({ get, set }: RefOption<T>) {
+  [isRefSymbol]: true;
+  constructor(opts: RefOption<T>) {
     proxy(this, 'value', {
-      get,
-      set,
+      get: opts.get,
+      set: opts.set,
     });
   }
 }
